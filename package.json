@@ -1,0 +1,68 @@
+{
+  "name": "@rewritejs/zod",
+  "version": "1.0.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/RewriteToday/zod.git"
+  },
+  "main": "./dist/index.js",
+  "devDependencies": {
+    "@biomejs/biome": "^2.4.4"
+  },
+  "peerDependencies": {
+    "typescript": "^5",
+    "zod": "^4.3.6"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./v1": {
+      "types": "./dist/v1/index.d.ts",
+      "import": "./dist/v1/index.js"
+    },
+    "./v1/*": {
+      "types": "./dist/v1/*.d.ts",
+      "import": "./dist/v1/*.js"
+    },
+    "./v*": null
+  },
+  "description": "Official Zod schemas for the Rewrite API.",
+  "engines": {
+    "node": ">=18",
+    "bun": ">=1.0.0"
+  },
+  "files": [
+    "dist"
+  ],
+  "keywords": [
+    "rewrite",
+    "schemas",
+    "zod",
+    "api",
+    "typescript"
+  ],
+  "license": "Apache-2.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "test": "bun test",
+    "build": "rm -rf dist && bun run gen:version && tsc",
+    "types": "bunx tsc --emitDeclarationOnly",
+    "prepublishOnly": "bun run build",
+    "gen:version": "bun run scripts/version.ts"
+  },
+  "sideEffects": false,
+  "type": "module",
+  "types": "./dist/index.d.ts",
+  "typesVersions": {
+    "*": {
+      "v1": [
+        "dist/v1/index.d.ts"
+      ]
+    }
+  }
+}
