@@ -249,15 +249,27 @@ const COUNTRY_CODES = [
 	'zw',
 ] as const;
 
+/**
+ * A unique identifier for a resource.
+ */
 export const Snowflake = z
 	.string()
 	.regex(/^[0-9]+$/, 'Expected a valid snowflake identifier.');
 
+/**
+ * A unique identifier for a resource.
+ */
 export type Snowflake = z.infer<typeof Snowflake>;
 
+/**
+ * Country codes used in templates i18n.
+ */
 export const CountryCode = StringEnum(
 	COUNTRY_CODES,
 	'Country codes used in templates i18n.',
 );
 
+/**
+ * Country codes used in templates i18n.
+ */
 export type CountryCode = z.infer<typeof CountryCode>;

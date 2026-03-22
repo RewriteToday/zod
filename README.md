@@ -3,7 +3,7 @@
 # Rewrite Zod
 
 Official **Zod** schemas for the **Rewrite API** — versioned, typed, and built for production.<br/>
-[@rewritejs/zod](https://www.npmjs.com/package/@rewritejs/zod) gives you first-class runtime validation for the public Rewrite API, including REST payloads, reusable resources, and webhook events.
+[@rewritetoday/zod](https://www.npmjs.com/package/@rewritetoday/zod) gives you first-class runtime validation for the public Rewrite API, including REST payloads, reusable resources, and webhook events.
 
 Built for TypeScript, Node.js, Bun, and modern server runtimes, it keeps your integrations aligned with the Rewrite platform while delivering a clean developer experience from request validation to webhook handling.
 
@@ -14,11 +14,11 @@ You can use your favorite package manager to install our package
 </div>
 
 ```bash
-npm install @rewritejs/zod zod
+npm install @rewritetoday/zod zod
 # Or
-yarn add @rewritejs/zod zod
+yarn add @rewritetoday/zod zod
 # Or
-bun add @rewritejs/zod zod
+bun add @rewritetoday/zod zod
 ```
 
 <div align="center">
@@ -33,7 +33,7 @@ Import schemas from the API version you want to target and validate requests or 
 import {
 	RESTPostCreateTemplateBody,
 	RESTGetListTemplatesData,
-} from '@rewritejs/zod/v1';
+} from '@rewritetoday/zod/v1';
 
 const data = RESTPostCreateTemplateBody.parse({
 	name: 'order_shipped',
@@ -74,7 +74,7 @@ import {
 	APIWebhook,
 	RESTPostCreateWebhookBody,
 	RESTGetListWebhooksData,
-} from '@rewritejs/zod/v1';
+} from '@rewritetoday/zod/v1';
 
 const webhook = APIWebhook.parse({
 	id: '748395130237498700',
@@ -114,7 +114,7 @@ Validate Rewrite webhook payloads with a discriminated union and branch safely b
 </div>
 
 ```ts
-import { WebhookEvent } from '@rewritejs/zod/v1';
+import { WebhookEvent } from '@rewritetoday/zod/v1';
 
 const result = WebhookEvent.safeParse({
 	type: 'message.sent',
