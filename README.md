@@ -34,24 +34,31 @@ import {
 	RESTPostCreateTemplateBody,
 	RESTGetListTemplatesData,
 } from '@rewritejs/zod/v1';
-import { REST } from '@rewritejs/rest';
-
-const client = new REST(process.env.REWRITE_API_KEY);
 
 const data = RESTPostCreateTemplateBody.parse({
 	name: 'order_shipped',
 	content: 'Hi {{first_name}}, your order {{order_id}} is on the way.',
+	description: 'Default shipping notification',
 	variables: [
 		{ name: 'first_name', fallback: 'customer' },
 		{ name: 'order_id', fallback: '0000' },
 	],
+	i18n: {
+		br: 'Oi {{first_name}}, seu pedido {{order_id}} esta a caminho.',
+	},
 });
 
-const response = await client.post('/templates', {
+console.log({
 	data,
+	url: '/templates',
+	response: RESTGetListTemplatesData.parse({
+		ok: true,
+		data: [],
+		cursor: {
+			persist: false,
+		},
+	}),
 });
-
-console.log({ data, response });
 ```
 
 <div align="center">
@@ -71,17 +78,20 @@ import {
 
 const webhook = APIWebhook.parse({
 	id: '748395130237498700',
-	name: 'Delivery events',
+	name: 'Message lifecycle',
+	secret: 'rewrite_webhook_secret',
 	endpoint: 'https://example.com/webhooks/rewrite',
-	events: ['sms.queued', 'sms.delivered'],
+	events: ['message.queued', 'message.delivered'],
 	status: 'ACTIVE',
+	projectId: '748395130237498701',
 	createdAt: '2026-02-19T16:05:00.000Z',
 });
 
 const body = RESTPostCreateWebhookBody.parse({
-	name: 'Delivery events',
+	name: 'Message lifecycle',
 	endpoint: 'https://example.com/webhooks/rewrite',
-	events: ['sms.queued', 'sms.delivered'],
+	events: ['message.queued', 'message.delivered'],
+	secret: 'rewrite_webhook_secret',
 });
 
 const data = RESTGetListWebhooksData.parse({
@@ -106,7 +116,37 @@ Validate Rewrite webhook payloads with a discriminated union and branch safely b
 ```ts
 import { WebhookEvent } from '@rewritejs/zod/v1';
 
-const result = WebhookEvent.safeParse(payload);
+const result = WebhookEvent.safeParse({
+	type: 'message.sent',
+	id: '748395130237498799',
+	createdAt: '2026-02-19T16:05:00.000Z',
+	data: {
+		id: '748395130237498800',
+		projectId: '748395130237498701',
+		createdAt: '748395130237498801',
+		analysis: {
+			characters: 24,
+			encoding: 'gsm7',
+			segments: {
+				count: 1,
+				single: 160,
+				concat: 153,
+				reason: 'fits',
+			},
+		},
+		to: '+5511999999999',
+		type: 'SMS',
+		tags: [{ name: 'campaign', value: 'spring' }],
+		status: 'SENT',
+		country: 'br',
+		content: 'Your code is 123456',
+		encoding: 'GMS7',
+		templateId: null,
+		deliveredAt: null,
+		scheduledAt: null,
+		isPayAsYouGo: false,
+	},
+});
 
 if (!result.success) {
 	console.error({ error: result.error });
