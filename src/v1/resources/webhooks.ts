@@ -39,6 +39,18 @@ export const WebhookEventType = NamedEnum(
  */
 export type WebhookEventType = z.infer<typeof WebhookEventType>;
 
+/** Wildcard selector that subscribes a webhook to every supported event. */
+export const WEBHOOK_ALL_EVENTS = '*';
+
+/** Event selector accepted by webhook create and update endpoints. */
+export const WebhookEventSelection = z.union([
+	WebhookEventType,
+	z.literal(WEBHOOK_ALL_EVENTS),
+]);
+
+/** Event selector accepted by webhook create and update endpoints. */
+export type WebhookEventSelection = z.infer<typeof WebhookEventSelection>;
+
 /**
  * https://docs.rewritetoday.com/api-reference/webhooks
  */
@@ -61,12 +73,28 @@ export type WebhookStatus = z.infer<typeof WebhookStatus>;
 /**
  * https://docs.rewritetoday.com/api-reference/webhooks
  */
+export const APIWebhookDelivery = z.object({
+	/** Timeout in milliseconds before Rewrite aborts the attempt. */
+	timeout: z.number(),
+
+	/** Number of retries allowed after the first failed attempt. */
+	retries: z.number(),
+});
+
+/**
+ * https://docs.rewritetoday.com/api-reference/webhooks
+ */
+export type APIWebhookDelivery = z.infer<typeof APIWebhookDelivery>;
+
+/**
+ * https://docs.rewritetoday.com/api-reference/webhooks
+ */
 export const APIWebhook = z.object({
 	/** Webhook ID in {@link Snowflake} format. */
 	id: Snowflake,
 
 	/** Webhook name (1-32 max). */
-	name: z.string(),
+	name: z.string().nullable(),
 
 	/** Secret content to send in events. */
 	secret: z.string(),
@@ -74,14 +102,17 @@ export const APIWebhook = z.object({
 	/** Destination URL for webhook events. */
 	endpoint: z.string(),
 
-	/** Subscribed events as {@link WebhookEventType}. */
-	events: z.array(WebhookEventType),
+	/** Subscribed events. */
+	events: z.array(WebhookEventSelection),
 
 	/** Current status as {@link WebhookStatus}. */
 	status: WebhookStatus,
 
-	/** Project ID in {@link Snowflake} format. */
-	projectId: Snowflake,
+	/** Timeout in milliseconds before Rewrite aborts the attempt. */
+	timeout: z.number(),
+
+	/** Number of retries allowed after the first failed attempt. */
+	retries: z.number(),
 
 	/** Timestamp when the webhook endpoint was created. */
 	createdAt: z.string(),
@@ -91,3 +122,15 @@ export const APIWebhook = z.object({
  * https://docs.rewritetoday.com/api-reference/webhooks
  */
 export type APIWebhook = z.infer<typeof APIWebhook>;
+
+/**
+ * https://docs.rewritetoday.com/api-reference/webhooks
+ */
+export const APIWebhookSummary = APIWebhook.omit({
+	secret: true,
+});
+
+/**
+ * https://docs.rewritetoday.com/api-reference/webhooks
+ */
+export type APIWebhookSummary = z.infer<typeof APIWebhookSummary>;

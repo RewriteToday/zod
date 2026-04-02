@@ -5,7 +5,7 @@ import { CountryCode, Snowflake } from './globals';
 /** https://docs.rewritetoday.com/api-reference/messages */
 export const MessageEncoding = NamedEnum(
 	{
-		GMS7: 'GMS7',
+		GSM7: 'GSM7',
 		UCS2: 'UCS2',
 	},
 	'https://docs.rewritetoday.com/api-reference/messages',
@@ -53,6 +53,18 @@ export const APIMessageTag = z.object({
 
 /** https://docs.rewritetoday.com/api-reference/messages */
 export type APIMessageTag = z.infer<typeof APIMessageTag>;
+
+/** https://docs.rewritetoday.com/api-reference/messages */
+export const MessageError = z.object({
+	/** Provider or platform-specific error code. */
+	code: z.unknown(),
+
+	/** Human-readable error message. */
+	message: z.string(),
+});
+
+/** https://docs.rewritetoday.com/api-reference/messages */
+export type MessageError = z.infer<typeof MessageError>;
 
 /**
  * https://docs.rewritetoday.com/api-reference/messages
@@ -127,13 +139,19 @@ export const APIMessage = z.object({
 	id: Snowflake,
 
 	/** Timestamp when Rewrite accepted the message. */
-	createdAt: Snowflake,
+	createdAt: z.string(),
 
 	/** Segmentation analysis for the SMS content accepted by Rewrite. */
 	analysis: APIMessageAnalysis,
 
 	/** Destination number in E.164 format. */
 	to: z.string(),
+
+	/** Origin phone identifier used to send the message, when available. */
+	from: Snowflake.nullable(),
+
+	/** Linked contact identifier, when the message is associated with a contact. */
+	contactId: Snowflake.nullable(),
 
 	/** Message type stored by Rewrite. See {@link MessageType} */
 	type: MessageType,

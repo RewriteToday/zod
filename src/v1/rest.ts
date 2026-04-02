@@ -1,11 +1,25 @@
 import { type _ZodType, z } from 'zod';
+import { APIContact } from './resources/contacts';
 import { CountryCode, Snowflake } from './resources/globals';
-import { APIWebhookLog } from './resources/logs';
-import { APIMessage, APIMessageTag, MessageStatus } from './resources/message';
+import {
+	APIWebhookLog,
+	APIWebhookLogSummary,
+	WebhookDeliveryStatus,
+} from './resources/logs';
+import {
+	APIMessage,
+	APIMessageTag,
+	MessageStatus,
+	MessageType,
+} from './resources/message';
 import { APIOTPMessage } from './resources/otp';
-import { APITemplate } from './resources/templates';
+import { APISegment } from './resources/segments';
+import { APITemplate, APITemplateTag } from './resources/templates';
 import {
 	APIWebhook,
+	APIWebhookDelivery,
+	APIWebhookSummary,
+	WebhookEventSelection,
 	WebhookEventType,
 	WebhookStatus,
 } from './resources/webhooks';
@@ -18,7 +32,7 @@ const APIError = z.object({
 	code: z.string(),
 
 	/** Optional detailed error (Only sent in `INVALID_JSON_BODY` code.). */
-	detailed: z.record(z.string(), z.unknown()).optional(),
+	detailed: z.object({}).catchall(z.unknown()).optional(),
 });
 
 const Cursor = z.object({
@@ -35,9 +49,6 @@ const Cursor = z.object({
 const EmptyData = z.null();
 
 const RESTPostSendMessageBaseBody = z.object({
-	/** Destination number in E.164 format. */
-	to: z.string(),
-
 	/** Optional metadata stored with the message. */
 	tags: z.array(APIMessageTag).optional(),
 
@@ -57,6 +68,50 @@ const RESTPostSendMessageBaseBody = z.object({
 			smart: z.boolean().optional(),
 		})
 		.optional(),
+});
+
+const RESTMessagePhoneTargetBody = {
+	/** Destination number in E.164 format. */
+	to: z.string(),
+
+	/** Contact identifier or name target is not allowed when `to` is provided. */
+	contact: z.never().optional(),
+};
+
+const RESTMessageContactTargetBody = {
+	/** Contact identifier or name used to resolve the destination number. */
+	contact: z.string(),
+
+	/** Direct phone targets are not allowed when `contact` is provided. */
+	to: z.never().optional(),
+};
+
+const RESTMessageContentBody = {
+	/** Rendered SMS content to send. */
+	content: z.string(),
+
+	/** Template identifiers are not allowed when raw content is provided. */
+	templateId: z.never().optional(),
+
+	/** Variables are not allowed when raw content is provided. */
+	variables: z.never().optional(),
+};
+
+const RESTMessageTemplateBody = {
+	/** Template identifier to render before sending. */
+	templateId: Snowflake,
+
+	/** Variable values used when rendering the selected template. */
+	variables: z.record(z.string(), z.string()).optional(),
+
+	/** Raw content is not allowed when a template is provided. */
+	content: z.never().optional(),
+};
+
+const RESTMessageCreateResponse = APIMessage.pick({
+	id: true,
+	createdAt: true,
+	analysis: true,
 });
 
 /** https://docs.rewritetoday.com/en/api/pagination */
@@ -122,6 +177,199 @@ export type APIResponseWithCursor<Schema extends _ZodType> = z.infer<
 	ReturnType<typeof APIResponseWithCursor<Schema>>
 >;
 
+/** `GET https://api.rewritetoday.com/v1/contacts/:identifier`. */
+export const RESTGetContactData = APIResponse(APIContact);
+
+/** `GET https://api.rewritetoday.com/v1/contacts/:identifier`. */
+export type RESTGetContactData = z.infer<typeof RESTGetContactData>;
+
+/** `GET https://api.rewritetoday.com/v1/contacts`. */
+export const RESTGetListContactsData = APIResponseWithCursor(
+	z.array(APIContact),
+);
+
+/** `GET https://api.rewritetoday.com/v1/contacts`. */
+export type RESTGetListContactsData = z.infer<typeof RESTGetListContactsData>;
+
+/** `GET https://api.rewritetoday.com/v1/contacts`. */
+export const RESTGetListContactsQueryParams = RESTCursorOptions;
+
+/** `GET https://api.rewritetoday.com/v1/contacts`. */
+export type RESTGetListContactsQueryParams = z.infer<
+	typeof RESTGetListContactsQueryParams
+>;
+
+/** `POST https://api.rewritetoday.com/v1/contacts`. */
+export const RESTPostCreateContactData = APIResponse(
+	APIContact.pick({
+		id: true,
+		phone: true,
+		country: true,
+		createdAt: true,
+	}),
+);
+
+/** `POST https://api.rewritetoday.com/v1/contacts`. */
+export type RESTPostCreateContactData = z.infer<
+	typeof RESTPostCreateContactData
+>;
+
+/** `POST https://api.rewritetoday.com/v1/contacts`. */
+export const RESTPostCreateContactBody = z.object({
+	/** Contact number in E.164 format. */
+	phone: z.string(),
+
+	/** Optional contact name. */
+	name: z.string().optional(),
+
+	/** Optional preferred channel for the contact. */
+	channel: MessageType.optional(),
+
+	/** Arbitrary metadata stored with the contact. */
+	tags: z.object({}).catchall(z.unknown()).optional(),
+});
+
+/** `POST https://api.rewritetoday.com/v1/contacts`. */
+export type RESTPostCreateContactBody = z.infer<
+	typeof RESTPostCreateContactBody
+>;
+
+/** `PATCH https://api.rewritetoday.com/v1/contacts/:id`. */
+export const RESTPatchUpdateContactData = APIResponse(EmptyData);
+
+/** `PATCH https://api.rewritetoday.com/v1/contacts/:id`. */
+export type RESTPatchUpdateContactData = z.infer<
+	typeof RESTPatchUpdateContactData
+>;
+
+/** `PATCH https://api.rewritetoday.com/v1/contacts/:id`. */
+export const RESTPatchUpdateContactBody = RESTPostCreateContactBody.partial();
+
+/** `PATCH https://api.rewritetoday.com/v1/contacts/:id`. */
+export type RESTPatchUpdateContactBody = z.infer<
+	typeof RESTPatchUpdateContactBody
+>;
+
+/** `DELETE https://api.rewritetoday.com/v1/contacts/:id`. */
+export const RESTDeleteContactData = APIResponse(EmptyData);
+
+/** `DELETE https://api.rewritetoday.com/v1/contacts/:id`. */
+export type RESTDeleteContactData = z.infer<typeof RESTDeleteContactData>;
+
+/** `GET https://api.rewritetoday.com/v1/segments/:id`. */
+export const RESTGetSegmentData = APIResponse(APISegment);
+
+/** `GET https://api.rewritetoday.com/v1/segments/:id`. */
+export type RESTGetSegmentData = z.infer<typeof RESTGetSegmentData>;
+
+/** `GET https://api.rewritetoday.com/v1/segments`. */
+export const RESTGetListSegmentsData = APIResponseWithCursor(
+	z.array(APISegment),
+);
+
+/** `GET https://api.rewritetoday.com/v1/segments`. */
+export type RESTGetListSegmentsData = z.infer<typeof RESTGetListSegmentsData>;
+
+/** `GET https://api.rewritetoday.com/v1/segments`. */
+export const RESTGetListSegmentsQueryParams = RESTCursorOptions;
+
+/** `GET https://api.rewritetoday.com/v1/segments`. */
+export type RESTGetListSegmentsQueryParams = z.infer<
+	typeof RESTGetListSegmentsQueryParams
+>;
+
+/** `POST https://api.rewritetoday.com/v1/segments`. */
+export const RESTPostCreateSegmentData = APIResponse(APISegment);
+
+/** `POST https://api.rewritetoday.com/v1/segments`. */
+export type RESTPostCreateSegmentData = z.infer<
+	typeof RESTPostCreateSegmentData
+>;
+
+/** `POST https://api.rewritetoday.com/v1/segments`. */
+export const RESTPostCreateSegmentBody = z.object({
+	/** Segment name. */
+	name: z.string(),
+
+	/** Optional HEX color associated with the segment. */
+	color: z.string().nullable().optional(),
+
+	/** Optional segment description. */
+	description: z.string().nullable().optional(),
+});
+
+/** `POST https://api.rewritetoday.com/v1/segments`. */
+export type RESTPostCreateSegmentBody = z.infer<
+	typeof RESTPostCreateSegmentBody
+>;
+
+/** `PATCH https://api.rewritetoday.com/v1/segments/:id`. */
+export const RESTPatchUpdateSegmentData = APIResponse(EmptyData);
+
+/** `PATCH https://api.rewritetoday.com/v1/segments/:id`. */
+export type RESTPatchUpdateSegmentData = z.infer<
+	typeof RESTPatchUpdateSegmentData
+>;
+
+/** `PATCH https://api.rewritetoday.com/v1/segments/:id`. */
+export const RESTPatchUpdateSegmentBody = RESTPostCreateSegmentBody.partial();
+
+/** `PATCH https://api.rewritetoday.com/v1/segments/:id`. */
+export type RESTPatchUpdateSegmentBody = z.infer<
+	typeof RESTPatchUpdateSegmentBody
+>;
+
+/** `DELETE https://api.rewritetoday.com/v1/segments/:id`. */
+export const RESTDeleteSegmentData = APIResponse(EmptyData);
+
+/** `DELETE https://api.rewritetoday.com/v1/segments/:id`. */
+export type RESTDeleteSegmentData = z.infer<typeof RESTDeleteSegmentData>;
+
+/** `GET https://api.rewritetoday.com/v1/segments/:id/contacts`. */
+export const RESTGetListSegmentContactsData = APIResponseWithCursor(
+	z.array(APIContact),
+);
+
+/** `GET https://api.rewritetoday.com/v1/segments/:id/contacts`. */
+export type RESTGetListSegmentContactsData = z.infer<
+	typeof RESTGetListSegmentContactsData
+>;
+
+/** `GET https://api.rewritetoday.com/v1/segments/:id/contacts`. */
+export const RESTGetListSegmentContactsQueryParams = RESTCursorOptions;
+
+/** `GET https://api.rewritetoday.com/v1/segments/:id/contacts`. */
+export type RESTGetListSegmentContactsQueryParams = z.infer<
+	typeof RESTGetListSegmentContactsQueryParams
+>;
+
+/** `POST https://api.rewritetoday.com/v1/segments/:id/contacts`. */
+export const RESTPostAttachSegmentContactBody = z.object({
+	/** Contact identifier to attach to the segment. */
+	contactId: Snowflake,
+});
+
+/** `POST https://api.rewritetoday.com/v1/segments/:id/contacts`. */
+export type RESTPostAttachSegmentContactBody = z.infer<
+	typeof RESTPostAttachSegmentContactBody
+>;
+
+/** `POST https://api.rewritetoday.com/v1/segments/:id/contacts`. */
+export const RESTPostAttachSegmentContactData = APIResponse(EmptyData);
+
+/** `POST https://api.rewritetoday.com/v1/segments/:id/contacts`. */
+export type RESTPostAttachSegmentContactData = z.infer<
+	typeof RESTPostAttachSegmentContactData
+>;
+
+/** `DELETE https://api.rewritetoday.com/v1/segments/:id/contacts/:contactId`. */
+export const RESTDeleteDetachSegmentContactData = APIResponse(EmptyData);
+
+/** `DELETE https://api.rewritetoday.com/v1/segments/:id/contacts/:contactId`. */
+export type RESTDeleteDetachSegmentContactData = z.infer<
+	typeof RESTDeleteDetachSegmentContactData
+>;
+
 /** `GET https://api.rewritetoday.com/v1/webhooks/:id`. */
 export const RESTGetWebhookData = APIResponse(APIWebhook);
 
@@ -144,17 +392,20 @@ export type RESTPostCreateWebhookData = z.infer<
 
 /** `POST https://api.rewritetoday.com/v1/webhooks`. */
 export const RESTPostCreateWebhookBody = z.object({
-	/** Webhook name. */
-	name: APIWebhook.shape.name.optional(),
+	/** Optional webhook name. */
+	name: z.string().optional(),
 
 	/** Destination URL for webhook events. */
 	endpoint: APIWebhook.shape.endpoint,
 
-	/** Subscribed events as {@link WebhookEventType}. */
-	events: APIWebhook.shape.events,
+	/** Subscribed webhook events. */
+	events: z.array(WebhookEventSelection),
 
-	/** Secret to use in the webhook requests. */
+	/** Optional secret to use in webhook deliveries. */
 	secret: z.string().optional(),
+
+	/** Optional delivery overrides. */
+	delivery: APIWebhookDelivery.partial().optional(),
 });
 
 /** `POST https://api.rewritetoday.com/v1/webhooks`. */
@@ -169,7 +420,7 @@ export const RESTDeleteWebhookData = APIResponse(EmptyData);
 export type RESTDeleteWebhookData = z.infer<typeof RESTDeleteWebhookData>;
 
 /** `PATCH https://api.rewritetoday.com/v1/webhooks/:id`. */
-export const RESTPatchUpdateWebhookData = APIResponse(APIWebhook);
+export const RESTPatchUpdateWebhookData = APIResponse(EmptyData);
 
 /** `PATCH https://api.rewritetoday.com/v1/webhooks/:id`. */
 export type RESTPatchUpdateWebhookData = z.infer<
@@ -179,19 +430,22 @@ export type RESTPatchUpdateWebhookData = z.infer<
 /** `PATCH https://api.rewritetoday.com/v1/webhooks/:id`. */
 export const RESTPatchUpdateWebhookBody = z.object({
 	/** Optional webhook name. */
-	name: APIWebhook.shape.name.optional(),
+	name: z.string().nullable().optional(),
 
-	/** Optional webhook endpoint URL. */
+	/** Optional destination URL for webhook events. */
 	endpoint: APIWebhook.shape.endpoint.optional(),
 
-	/** Optional subscribed events as {@link WebhookEventType}. */
-	events: APIWebhook.shape.events.optional(),
+	/** Optional set of subscribed webhook events. */
+	events: z.array(WebhookEventSelection).optional(),
 
-	/** Optional status as {@link WebhookStatus}. */
+	/** Optional status. */
 	status: WebhookStatus.optional(),
 
-	/** Optional secret to send in webhook requests. */
+	/** Optional secret to use in webhook deliveries. */
 	secret: z.string().optional(),
+
+	/** Optional delivery overrides. */
+	delivery: APIWebhookDelivery.partial().optional(),
 });
 
 /** `PATCH https://api.rewritetoday.com/v1/webhooks/:id`. */
@@ -201,7 +455,7 @@ export type RESTPatchUpdateWebhookBody = z.infer<
 
 /** `GET https://api.rewritetoday.com/v1/webhooks`. */
 export const RESTGetListWebhooksData = APIResponseWithCursor(
-	z.array(APIWebhook),
+	z.array(APIWebhookSummary),
 );
 
 /** `GET https://api.rewritetoday.com/v1/webhooks`. */
@@ -225,13 +479,24 @@ export type RESTGetListTemplatesData = z.infer<typeof RESTGetListTemplatesData>;
 
 /** `GET https://api.rewritetoday.com/v1/templates`. */
 export const RESTGetListTemplatesQueryParams = RESTCursorOptions.extend({
-	/** When `true`, include the template `i18n` map in list/detail responses. */
-	with18n: z.boolean().optional(),
+	/** When `true`, include the template `i18n` map in responses. */
+	withi18n: z.boolean().optional(),
 });
 
 /** `GET https://api.rewritetoday.com/v1/templates`. */
 export type RESTGetListTemplatesQueryParams = z.infer<
 	typeof RESTGetListTemplatesQueryParams
+>;
+
+/** `GET https://api.rewritetoday.com/v1/templates/:identifier`. */
+export const RESTGetTemplateQueryParams = z.object({
+	/** When `true`, include the template `i18n` map in the response. */
+	withi18n: z.boolean().optional(),
+});
+
+/** `GET https://api.rewritetoday.com/v1/templates/:identifier`. */
+export type RESTGetTemplateQueryParams = z.infer<
+	typeof RESTGetTemplateQueryParams
 >;
 
 /** `POST https://api.rewritetoday.com/v1/templates`. */
@@ -252,10 +517,12 @@ export const RESTPostCreateTemplateBody = z.object({
 	name: APITemplate.shape.name,
 	content: APITemplate.shape.content,
 	variables: APITemplate.shape.variables,
-	description: APITemplate.shape.description,
 
-	/** Locale-specific overrides available for the template. */
-	i18n: z.partialRecord(CountryCode, z.string()).optional(),
+	/** Optional description saved with the template. */
+	description: APITemplate.shape.description.optional(),
+
+	/** Optional static tags attached to the template. */
+	tags: z.array(APITemplateTag).optional(),
 });
 
 /** `POST https://api.rewritetoday.com/v1/templates`. */
@@ -272,12 +539,9 @@ export type RESTPatchUpdateTemplateData = z.infer<
 >;
 
 /** `PATCH https://api.rewritetoday.com/v1/templates/:id`. */
-export const RESTPatchUpdateTemplateBody = z.object({
-	content: RESTPostCreateTemplateBody.shape.content.optional(),
-	variables: RESTPostCreateTemplateBody.shape.variables.optional(),
-	description: RESTPostCreateTemplateBody.shape.description.optional(),
-	i18n: RESTPostCreateTemplateBody.shape.i18n.optional(),
-});
+export const RESTPatchUpdateTemplateBody = RESTPostCreateTemplateBody.omit({
+	name: true,
+}).partial();
 
 /** `PATCH https://api.rewritetoday.com/v1/templates/:id`. */
 export type RESTPatchUpdateTemplateBody = z.infer<
@@ -290,10 +554,10 @@ export const RESTDeleteTemplateData = APIResponse(EmptyData);
 /** `DELETE https://api.rewritetoday.com/v1/templates/:id`. */
 export type RESTDeleteTemplateData = z.infer<typeof RESTDeleteTemplateData>;
 
-/** `GET https://api.rewritetoday.com/v1/templates/:id`. */
+/** `GET https://api.rewritetoday.com/v1/templates/:identifier`. */
 export const RESTGetTemplateData = APIResponse(APITemplate);
 
-/** `GET https://api.rewritetoday.com/v1/templates/:id`. */
+/** `GET https://api.rewritetoday.com/v1/templates/:identifier`. */
 export type RESTGetTemplateData = z.infer<typeof RESTGetTemplateData>;
 
 /** `DELETE https://api.rewritetoday.com/v1/api-keys/:key`. */
@@ -310,11 +574,7 @@ export type RESTGetWebhookLogData = z.infer<typeof RESTGetWebhookLogData>;
 
 /** `GET https://api.rewritetoday.com/v1/webhooks/:id/logs`. */
 export const RESTGetListWebhookLogsData = APIResponseWithCursor(
-	z.array(
-		APIWebhookLog.omit({
-			payload: true,
-		}),
-	),
+	z.array(APIWebhookLogSummary),
 );
 
 /** `GET https://api.rewritetoday.com/v1/webhooks/:id/logs`. */
@@ -328,7 +588,7 @@ export const RESTGetListWebhookLogsQueryParams = RESTCursorOptions.extend({
 	type: WebhookEventType.optional(),
 
 	/** Delivery status to include in the result set. */
-	status: WebhookStatus.optional(),
+	status: WebhookDeliveryStatus.optional(),
 });
 
 /** `GET https://api.rewritetoday.com/v1/webhooks/:id/logs`. */
@@ -382,10 +642,10 @@ export const RESTPostVerifyOTPCodeData = APIResponse(
 		id: z.string(),
 
 		/** Always `true` when the OTP verification succeeds. */
-		valid: z.boolean(),
+		valid: z.literal(true),
 
 		/** Timestamp when Rewrite marked the OTP as verified. */
-		verifiedAt: z.string().nullable(),
+		verifiedAt: z.string(),
 	}),
 );
 
@@ -395,34 +655,33 @@ export type RESTPostVerifyOTPCodeData = z.infer<
 >;
 
 /** `POST https://api.rewritetoday.com/v1/messages` */
-export const RESTPostSendMessageData = APIResponse(
-	APIMessage.pick({
-		id: true,
-		createdAt: true,
-		analysis: true,
-	}),
-);
-
-/** `POST https://api.rewritetoday.com/v1/messages` */
-export type RESTPostSendMessageData = z.infer<typeof RESTPostSendMessageData>;
-
-/** `POST https://api.rewritetoday.com/v1/messages` */
 export const RESTPostSendMessageBody = z.union([
 	RESTPostSendMessageBaseBody.extend({
-		/** Rendered SMS content to send. */
-		content: z.string(),
+		...RESTMessagePhoneTargetBody,
+		...RESTMessageContentBody,
 	}).strict(),
 	RESTPostSendMessageBaseBody.extend({
-		/** Template identifier to render before sending. */
-		templateId: Snowflake,
-
-		/** Variable values used when rendering the selected template. */
-		variables: z.record(z.string(), z.string()),
+		...RESTMessagePhoneTargetBody,
+		...RESTMessageTemplateBody,
+	}).strict(),
+	RESTPostSendMessageBaseBody.extend({
+		...RESTMessageContactTargetBody,
+		...RESTMessageContentBody,
+	}).strict(),
+	RESTPostSendMessageBaseBody.extend({
+		...RESTMessageContactTargetBody,
+		...RESTMessageTemplateBody,
 	}).strict(),
 ]);
 
 /** `POST https://api.rewritetoday.com/v1/messages` */
 export type RESTPostSendMessageBody = z.infer<typeof RESTPostSendMessageBody>;
+
+/** `POST https://api.rewritetoday.com/v1/messages` */
+export const RESTPostSendMessageData = APIResponse(RESTMessageCreateResponse);
+
+/** `POST https://api.rewritetoday.com/v1/messages` */
+export type RESTPostSendMessageData = z.infer<typeof RESTPostSendMessageData>;
 
 /** `POST https://api.rewritetoday.com/v1/messages/batch` */
 export const RESTPostSendBatchMessagesBody = z.array(RESTPostSendMessageBody);
@@ -434,10 +693,7 @@ export type RESTPostSendBatchMessagesBody = z.infer<
 
 /** `POST https://api.rewritetoday.com/v1/messages/batch` */
 export const RESTPostSendBatchMessagesData = APIResponse(
-	z.object({
-		/** Identifiers for the messages accepted into the batch request. */
-		ids: z.array(Snowflake),
-	}),
+	z.array(RESTMessageCreateResponse),
 );
 
 /** `POST https://api.rewritetoday.com/v1/messages/batch` */

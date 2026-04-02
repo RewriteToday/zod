@@ -51,7 +51,7 @@ export const APIWebhookLog = z.object({
 	code: z.number().nullable(),
 
 	/** Event payload delivered during this attempt. */
-	payload: z.record(z.string(), z.unknown()),
+	payload: z.object({}).catchall(z.unknown()),
 
 	/** Attempt number for this delivery. */
 	attempt: z.number(),
@@ -67,3 +67,16 @@ export const APIWebhookLog = z.object({
  * https://docs.rewritetoday.com/api-reference/logs
  */
 export type APIWebhookLog = z.infer<typeof APIWebhookLog>;
+
+/**
+ * https://docs.rewritetoday.com/api-reference/logs
+ */
+export const APIWebhookLogSummary = APIWebhookLog.omit({
+	payload: true,
+	webhookId: true,
+});
+
+/**
+ * https://docs.rewritetoday.com/api-reference/logs
+ */
+export type APIWebhookLogSummary = z.infer<typeof APIWebhookLogSummary>;
