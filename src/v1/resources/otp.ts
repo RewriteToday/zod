@@ -1,27 +1,24 @@
 import { z } from 'zod';
 import { Snowflake } from './globals';
 
-/**
- * https://docs.rewritetoday.com/api-reference/otp
- */
+/** https://docs.rewritetoday.com/en/api/openapi-otp.json */
 export const APIOTPMessage = z.object({
-	/** OTP message in {@link Snowflake} format. */
 	id: Snowflake,
-
-	/** Destination number used for the OTP. */
 	to: z.string(),
-
-	/** Brand prefix included in the OTP SMS. */
 	prefix: z.string(),
-
-	/** Timestamp when Rewrite accepted the OTP request. */
 	createdAt: z.string(),
-
-	/** Timestamp when the OTP becomes invalid. */
 	expiresAt: z.string(),
 });
 
-/**
- * https://docs.rewritetoday.com/api-reference/otp
- */
+/** https://docs.rewritetoday.com/en/api/openapi-otp.json */
 export type APIOTPMessage = z.infer<typeof APIOTPMessage>;
+
+/** https://docs.rewritetoday.com/en/api/openapi-otp.json */
+export const APIOTPVerification = z.object({
+	id: Snowflake,
+	valid: z.literal(true),
+	verifiedAt: z.string(),
+});
+
+/** https://docs.rewritetoday.com/en/api/openapi-otp.json */
+export type APIOTPVerification = z.infer<typeof APIOTPVerification>;

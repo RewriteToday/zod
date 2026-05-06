@@ -1,68 +1,41 @@
 import { z } from 'zod';
-import { CountryCode, Snowflake } from './globals';
+import { CountryCode, Metadata, Snowflake } from './globals';
 
-/**
- * https://docs.rewritetoday.com/api-reference/templates
- */
+/** https://docs.rewritetoday.com/en/api/openapi-templates.json */
 export const APITemplateVariable = z.object({
-	/** Variable name. */
 	name: z.string(),
-
-	/** Optional default value. */
 	fallback: z.string().optional(),
 });
 
-/**
- * https://docs.rewritetoday.com/api-reference/templates
- */
+/** https://docs.rewritetoday.com/en/api/openapi-templates.json */
 export type APITemplateVariable = z.infer<typeof APITemplateVariable>;
 
-/**
- * https://docs.rewritetoday.com/api-reference/templates
- */
-export const APITemplateTag = z.object({
-	/** Tag name. */
-	name: z.string(),
+/** Locale map used by template i18n payloads. */
+export const APITemplateI18n = z.partialRecord(CountryCode, z.string());
 
-	/** Tag value. */
-	value: z.string(),
-});
+/** Locale map used by template i18n payloads. */
+export type APITemplateI18n = z.infer<typeof APITemplateI18n>;
 
-/**
- * https://docs.rewritetoday.com/api-reference/templates
- */
-export type APITemplateTag = z.infer<typeof APITemplateTag>;
-
-/**
- * https://docs.rewritetoday.com/api-reference/templates
- */
+/** https://docs.rewritetoday.com/en/api/openapi-templates.json */
 export const APITemplate = z.object({
-	/** Template ID in {@link Snowflake} format. */
 	id: Snowflake,
-
-	/** Template name. */
 	name: z.string(),
-
-	/** Default SMS content stored for the template. */
 	content: z.string(),
-
-	/** Human-readable description saved with the template (1-72 max.). */
-	description: z.string().nullable(),
-
-	/** Locale-specific overrides available for the template when requested. */
-	i18n: z.partialRecord(CountryCode, z.string()).optional(),
-
-	/** Template variables as {@link APITemplateVariable}. */
+	i18n: APITemplateI18n.optional(),
 	variables: z.array(APITemplateVariable),
-
-	/** Static tags attached to the template. */
-	tags: z.array(APITemplateTag),
-
-	/** Timestamp when the template was created. */
+	description: z.string().nullable(),
+	tags: Metadata.optional(),
 	createdAt: z.string(),
 });
 
-/**
- * https://docs.rewritetoday.com/api-reference/templates
- */
+/** https://docs.rewritetoday.com/en/api/openapi-templates.json */
 export type APITemplate = z.infer<typeof APITemplate>;
+
+/** Creation result returned by template create/duplicate endpoints. */
+export const APICreatedTemplate = z.object({
+	id: Snowflake,
+	createdAt: z.string(),
+});
+
+/** Creation result returned by template create/duplicate endpoints. */
+export type APICreatedTemplate = z.infer<typeof APICreatedTemplate>;

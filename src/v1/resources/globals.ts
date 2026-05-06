@@ -262,6 +262,35 @@ export const Snowflake = z
 export type Snowflake = z.infer<typeof Snowflake>;
 
 /**
+ * JSON-like value accepted in Rewrite metadata payloads.
+ */
+export const MetadataValue: z.ZodType = z.lazy(() =>
+	z.union([
+		z.boolean(),
+		z.number(),
+		z.string(),
+		z.null(),
+		z.array(MetadataValue),
+		z.record(z.string(), MetadataValue),
+	]),
+);
+
+/**
+ * JSON-like value accepted in Rewrite metadata payloads.
+ */
+export type MetadataValue = z.infer<typeof MetadataValue>;
+
+/**
+ * Arbitrary JSON object used by Rewrite for metadata bags.
+ */
+export const Metadata = z.record(z.string(), MetadataValue);
+
+/**
+ * Arbitrary JSON object used by Rewrite for metadata bags.
+ */
+export type Metadata = z.infer<typeof Metadata>;
+
+/**
  * Country codes used in templates i18n.
  */
 export const CountryCode = StringEnum(

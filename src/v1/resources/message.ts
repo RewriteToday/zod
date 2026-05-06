@@ -1,74 +1,74 @@
 import { z } from 'zod';
 import { NamedEnum } from '../../utils';
-import { CountryCode, Snowflake } from './globals';
+import { CountryCode, Metadata, Snowflake } from './globals';
 
-/** https://docs.rewritetoday.com/api-reference/messages */
+/** Stored message kind. */
+export const MessageType = NamedEnum(
+	{
+		SMS: 'SMS',
+		OTP: 'OTP',
+	},
+	'https://docs.rewritetoday.com/en/api/openapi-messages.json',
+);
+
+/** Stored message kind. */
+export type MessageType = z.infer<typeof MessageType>;
+
+/** Stored SMS encoding. */
 export const MessageEncoding = NamedEnum(
 	{
 		GSM7: 'GSM7',
 		UCS2: 'UCS2',
 	},
-	'https://docs.rewritetoday.com/api-reference/messages',
+	'https://docs.rewritetoday.com/en/api/openapi-messages.json',
 );
 
-/** https://docs.rewritetoday.com/api-reference/messages */
+/** Stored SMS encoding. */
 export type MessageEncoding = z.infer<typeof MessageEncoding>;
 
-/** https://docs.rewritetoday.com/api-reference/messages */
+/** Latest message state known by Rewrite. */
 export const MessageStatus = NamedEnum(
 	{
 		Sent: 'SENT',
 		Queued: 'QUEUED',
 		Failed: 'FAILED',
 		Canceled: 'CANCELED',
+		Received: 'RECEIVED',
 		Scheduled: 'SCHEDULED',
 		Delivered: 'DELIVERED',
 	},
-	'https://docs.rewritetoday.com/api-reference/messages',
+	'https://docs.rewritetoday.com/en/api/openapi-messages.json',
 );
 
-/** https://docs.rewritetoday.com/api-reference/messages */
+/** Latest message state known by Rewrite. */
 export type MessageStatus = z.infer<typeof MessageStatus>;
 
-/** https://docs.rewritetoday.com/api-reference/messages */
-export const MessageType = NamedEnum(
+/** How Rewrite may handle long SMS bodies. */
+export const MessageSegmentationMode = NamedEnum(
 	{
-		SMS: 'SMS',
-		OTP: 'OTP',
+		Fail: 'fail',
+		Trim: 'trim',
+		Send: 'send',
 	},
-	'https://docs.rewritetoday.com/api-reference/messages',
+	'https://docs.rewritetoday.com/en/api/openapi-messages.json',
 );
 
-/** https://docs.rewritetoday.com/api-reference/messages */
-export type MessageType = z.infer<typeof MessageType>;
+/** How Rewrite may handle long SMS bodies. */
+export type MessageSegmentationMode = z.infer<typeof MessageSegmentationMode>;
 
-/** https://docs.rewritetoday.com/api-reference/messages */
-export const APIMessageTag = z.object({
-	/** Tag key attached to the message. */
-	name: z.string(),
+/** Analysis-time encoding inferred by Rewrite. */
+export const MessageAnalysisEncoding = NamedEnum(
+	{
+		GSM7: 'gsm7',
+		UCS2: 'ucs2',
+	},
+	'https://docs.rewritetoday.com/en/api/openapi-messages.json',
+);
 
-	/** Tag value attached to the message. */
-	value: z.string(),
-});
+/** Analysis-time encoding inferred by Rewrite. */
+export type MessageAnalysisEncoding = z.infer<typeof MessageAnalysisEncoding>;
 
-/** https://docs.rewritetoday.com/api-reference/messages */
-export type APIMessageTag = z.infer<typeof APIMessageTag>;
-
-/** https://docs.rewritetoday.com/api-reference/messages */
-export const MessageError = z.object({
-	/** Provider or platform-specific error code. */
-	code: z.unknown(),
-
-	/** Human-readable error message. */
-	message: z.string(),
-});
-
-/** https://docs.rewritetoday.com/api-reference/messages */
-export type MessageError = z.infer<typeof MessageError>;
-
-/**
- * https://docs.rewritetoday.com/api-reference/messages
- */
+/** Why Rewrite chose the reported segmentation result. */
 export const MessageAnalysisReason = NamedEnum(
 	{
 		FitsSingleSegment: 'fits',
@@ -76,115 +76,89 @@ export const MessageAnalysisReason = NamedEnum(
 		ExceedsSingleSegmentLimit: 'singleLimit',
 		ContainsNonGsm7Characters: 'nonGsm7',
 	},
-	'https://docs.rewritetoday.com/api-reference/messages',
+	'https://docs.rewritetoday.com/en/api/openapi-messages.json',
 );
 
-/**
- * https://docs.rewritetoday.com/api-reference/messages
- */
+/** Why Rewrite chose the reported segmentation result. */
 export type MessageAnalysisReason = z.infer<typeof MessageAnalysisReason>;
 
-/**
- * https://docs.rewritetoday.com/api-reference/messages
- */
-export const MessageAnalysisEncoding = NamedEnum(
-	{
-		GSM7: 'gsm7',
-		UCS2: 'ucs2',
-	},
-	'https://docs.rewritetoday.com/api-reference/messages',
-);
-
-/**
- * https://docs.rewritetoday.com/api-reference/messages
- */
-export type MessageAnalysisEncoding = z.infer<typeof MessageAnalysisEncoding>;
-
-/**
- * https://docs.rewritetoday.com/api-reference/messages
- */
-export const APIMessageAnalysis = z.object({
-	/** Total character count in the rendered SMS content. */
-	characters: z.number(),
-
-	/** Encoding detected for the rendered SMS content. */
-	encoding: MessageAnalysisEncoding,
-
-	/** Segments result. */
-	segments: z.object({
-		/** Number of SMS segments required to send the message. */
-		count: z.number(),
-
-		/** Maximum characters allowed when the message fits in a single SMS. */
-		single: z.number(),
-
-		/** Maximum characters allowed per segment in multipart SMS. */
-		concat: z.number(),
-
-		/** Why Rewrite selected the reported segmentation result. */
-		reason: MessageAnalysisReason,
-	}),
+/** Error metadata embedded in message webhooks. */
+export const MessageError = z.object({
+	code: z.union([z.string(), z.number(), z.null()]),
+	message: z.string(),
 });
 
-/**
- * https://docs.rewritetoday.com/api-reference/messages
- */
+/** Error metadata embedded in message webhooks. */
+export type MessageError = z.infer<typeof MessageError>;
+
+/** Segment sizing reported by Rewrite. */
+export const APIMessageAnalysisSegments = z.object({
+	count: z.number(),
+	single: z.number(),
+	concat: z.number(),
+	reason: MessageAnalysisReason,
+});
+
+/** Segment sizing reported by Rewrite. */
+export type APIMessageAnalysisSegments = z.infer<
+	typeof APIMessageAnalysisSegments
+>;
+
+/** Segmentation analysis returned by Rewrite. */
+export const APIMessageAnalysis = z.object({
+	characters: z.number(),
+	encoding: MessageAnalysisEncoding,
+	segments: APIMessageAnalysisSegments,
+});
+
+/** Segmentation analysis returned by Rewrite. */
 export type APIMessageAnalysis = z.infer<typeof APIMessageAnalysis>;
 
-/**
- * https://docs.rewritetoday.com/api-reference/messages
- */
-export const APIMessage = z.object({
-	/** Message ID in {@link Snowflake} format. */
+/** High-level message reference returned by creation endpoints. */
+export const APIMessageRef = z.object({
 	id: Snowflake,
-
-	/** Timestamp when Rewrite accepted the message. */
 	createdAt: z.string(),
-
-	/** Segmentation analysis for the SMS content accepted by Rewrite. */
-	analysis: APIMessageAnalysis,
-
-	/** Destination number in E.164 format. */
-	to: z.string(),
-
-	/** Origin phone identifier used to send the message, when available. */
-	from: Snowflake.nullable(),
-
-	/** Linked contact identifier, when the message is associated with a contact. */
-	contactId: Snowflake.nullable(),
-
-	/** Message type stored by Rewrite. See {@link MessageType} */
-	type: MessageType,
-
-	/** Metadata attached to the message. */
-	tags: z.array(APIMessageTag),
-
-	/** Latest delivery status known by Rewrite. See {@link MessageStatus} */
-	status: MessageStatus,
-
-	/** Country inferred from the destination number. See {@link CountryCode} */
-	country: CountryCode,
-
-	/** Final SMS content sent to the destination number. */
-	content: z.string(),
-
-	/** Encoding used by the provider when sending the SMS. See {@link MessageEncoding} */
-	encoding: MessageEncoding,
-
-	/** Template used to render the message, when applicable. */
-	templateId: Snowflake.nullable(),
-
-	/** Timestamp when the provider confirmed final delivery. */
-	deliveredAt: z.string().nullable(),
-
-	/** Scheduled send time, when the message was delayed intentionally. */
-	scheduledAt: z.string().nullable(),
-
-	/** Whether the message consumed pay-as-you-go balance instead of subscription quota. */
-	isPayAsYouGo: z.boolean(),
 });
 
-/**
- * https://docs.rewritetoday.com/api-reference/messages
- */
+/** High-level message reference returned by creation endpoints. */
+export type APIMessageRef = z.infer<typeof APIMessageRef>;
+
+/** Message creation result returned by Rewrite. */
+export const APICreatedMessage = APIMessageRef.extend({
+	analysis: APIMessageAnalysis,
+	sandbox: z.boolean(),
+});
+
+/** Message creation result returned by Rewrite. */
+export type APICreatedMessage = z.infer<typeof APICreatedMessage>;
+
+/** Batch message creation result returned by Rewrite. */
+export const APIBatchMessagesResult = z.object({
+	ids: z.array(Snowflake),
+});
+
+/** Batch message creation result returned by Rewrite. */
+export type APIBatchMessagesResult = z.infer<typeof APIBatchMessagesResult>;
+
+/** Persisted message representation returned by Rewrite. */
+export const APIMessage = z.object({
+	id: Snowflake,
+	createdAt: z.string(),
+	contact: z.string().nullable(),
+	contactId: Snowflake.nullable(),
+	to: z.string(),
+	from: z.string().nullable(),
+	type: MessageType,
+	tags: Metadata,
+	status: MessageStatus,
+	country: CountryCode,
+	content: z.string(),
+	encoding: MessageEncoding,
+	templateId: Snowflake.nullable(),
+	deliveredAt: z.string().nullable(),
+	scheduledAt: z.string().nullable(),
+	sandbox: z.boolean(),
+});
+
+/** Persisted message representation returned by Rewrite. */
 export type APIMessage = z.infer<typeof APIMessage>;

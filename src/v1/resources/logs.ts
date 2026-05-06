@@ -1,82 +1,41 @@
 import { z } from 'zod';
 import { NamedEnum } from '../../utils';
-import { Snowflake } from './globals';
-import { WebhookEventType } from './webhooks';
+import { MetadataValue, Snowflake } from './globals';
 
-/**
- * https://docs.rewritetoday.com/api-reference/logs
- */
-export const WebhookDeliveryStatus = NamedEnum(
+/** Request source recorded by Rewrite logs. */
+export const RequestLogSource = NamedEnum(
 	{
-		Success: 'SUCCESS',
-		Failed: 'FAILED',
+		API: 'API',
+		Dashboard: 'Dashboard',
 	},
-	'https://docs.rewritetoday.com/api-reference/logs',
+	'https://docs.rewritetoday.com/en/api/openapi-logs.json',
 );
 
-/**
- * https://docs.rewritetoday.com/api-reference/logs
- */
-export type WebhookDeliveryStatus = z.infer<typeof WebhookDeliveryStatus>;
+/** Request source recorded by Rewrite logs. */
+export type RequestLogSource = z.infer<typeof RequestLogSource>;
 
-/**
- * https://docs.rewritetoday.com/api-reference/logs
- */
-export const APIWebhookLog = z.object({
-	/** Webhook log in {@link Snowflake} format. */
+/** https://docs.rewritetoday.com/en/api/openapi-logs.json */
+export const APIRequestLogSummary = z.object({
 	id: Snowflake,
-
-	/** Timestamp when Rewrite recorded the delivery attempt. */
+	method: z.string(),
+	endpoint: z.string(),
+	status: z.number(),
+	source: RequestLogSource,
+	sandbox: z.boolean(),
 	createdAt: z.string(),
-
-	/** Webhook identifier associated with the log entry. */
-	webhookId: Snowflake.nullable(),
-
-	/** Message identifier associated with the delivery attempt, when available. */
-	messageId: Snowflake.nullable(),
-
-	/** Webhook event type delivered in this attempt. See {@link WebhookEventType} */
-	type: WebhookEventType,
-
-	/** Transport or application error captured for the attempt. */
-	error: z.string().nullable(),
-
-	/** Delivery outcome recorded by Rewrite. See {@link WebhookDeliveryStatus} */
-	status: WebhookDeliveryStatus,
-
-	/** Endpoint URL that received the delivery attempt. */
-	url: z.string(),
-
-	/** HTTP status code returned by the destination endpoint. */
-	code: z.number().nullable(),
-
-	/** Event payload delivered during this attempt. */
-	payload: z.object({}).catchall(z.unknown()),
-
-	/** Attempt number for this delivery. */
-	attempt: z.number(),
-
-	/**Round-trip time in milliseconds. */
-	latency: z.number().nullable(),
-
-	/** Next scheduled retry time, when the attempt failed and will retry. */
-	retryAt: z.string().nullable(),
 });
 
-/**
- * https://docs.rewritetoday.com/api-reference/logs
- */
-export type APIWebhookLog = z.infer<typeof APIWebhookLog>;
+/** https://docs.rewritetoday.com/en/api/openapi-logs.json */
+export type APIRequestLogSummary = z.infer<typeof APIRequestLogSummary>;
 
-/**
- * https://docs.rewritetoday.com/api-reference/logs
- */
-export const APIWebhookLogSummary = APIWebhookLog.omit({
-	payload: true,
-	webhookId: true,
+/** https://docs.rewritetoday.com/en/api/openapi-logs.json */
+export const APIRequestLog = APIRequestLogSummary.extend({
+	ip: z.string().nullable(),
+	projectId: Snowflake.nullable(),
+	apiKeyId: Snowflake.nullable(),
+	requestBody: MetadataValue.nullable(),
+	responseBody: MetadataValue.nullable(),
 });
 
-/**
- * https://docs.rewritetoday.com/api-reference/logs
- */
-export type APIWebhookLogSummary = z.infer<typeof APIWebhookLogSummary>;
+/** https://docs.rewritetoday.com/en/api/openapi-logs.json */
+export type APIRequestLog = z.infer<typeof APIRequestLog>;
